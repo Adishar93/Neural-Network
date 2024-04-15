@@ -19,24 +19,18 @@ class NeuralNetwork:
         self.alpha = alpha
         self.W1 = np.random.rand(middle_layer_neurons, input_size) - 0.5
         self.b1 = np.random.rand(middle_layer_neurons, 1) - 0.5
-        self.W2 = np.random.rand(middle_layer_neurons, middle_layer_neurons) - 0.5
-        self.b2 = np.random.rand(middle_layer_neurons, 1) - 0.5
-        self.W3 = np.random.rand(1, middle_layer_neurons) - 0.5
-        self.b3 = np.random.rand(1, 1) - 0.5
+        self.W2 = np.random.rand(1, middle_layer_neurons) - 0.5
+        self.b2 = np.random.rand(1, 1) - 0.5
 
     def feedforward(self):
         self.Z1 = np.dot(self.W1, self.X) + self.b1
         self.A1 = sigmoid(self.Z1)
         self.Z2 = self.W2.dot(self.A1) + self.b2
         self.A2 = sigmoid(self.Z2)
-        self.Z3 = self.W3.dot(self.A2) + self.b3
-        self.A3 = self.Z3
+        # print(self.A2)
 
     def backpropagate(self):
-        dZ3 = self.A3 - (self.Y)
-        dW3 = 1 / self.Y.size * dZ3.dot(self.A2.T)
-        db3 = 1 / self.Y.size * np.sum(dZ3)
-        dZ2 = self.W3.T.dot(dZ3) * derivative_sigmoid(self.A2)
+        dZ2 = self.A2 - self.Y
         dW2 = 1 / self.Y.size * dZ2.dot(self.A1.T)
         db2 = 1 / self.Y.size * np.sum(dZ2)
         dZ1 = self.W2.T.dot(dZ2) * derivative_sigmoid(self.A1)
@@ -47,17 +41,15 @@ class NeuralNetwork:
         self.b1 = self.b1 - self.alpha * db1
         self.W2 = self.W2 - self.alpha * dW2
         self.b2 = self.b2 - self.alpha * db2
-        self.W3 = self.W3 - self.alpha * dW3
-        self.b3 = self.b3 - self.alpha * db3
 
     def get_predictions(self):
-        convertedA3 = np.round(self.A3)
-        return convertedA3
+        convertedA2 = np.round(self.A2)
+        return convertedA2
 
     def get_accuracy(self):
-        convertedA3 = self.get_predictions()
+        convertedA2 = self.get_predictions()
         # print(convertedA2, self.Y)
-        return np.sum(convertedA3 == self.Y) / self.Y.size
+        return np.sum(convertedA2 == self.Y) / self.Y.size
 
     def setX(self, value):
         self.X = value.astype(float)
@@ -84,24 +76,22 @@ def oneHotEncode(referenceRow, row):
 
 if __name__ == "__main__":
     np.set_printoptions(threshold=sys.maxsize)
-    input_data = np.array(pd.read_csv("train_data2.csv"))
-    input_labels = np.array(pd.read_csv("train_label2.csv"))
+    input_data = np.array(pd.read_csv("train_data3.csv"))
+    input_labels = np.array(pd.read_csv("train_label3.csv"))
     test_data = np.array(pd.read_csv("test_data1.csv"))
 
     # tuning parameters
     split_index = int(len(input_data) * 0.8)
     batchSize = 4
-    epoch = 50
-    middle_layer_neurons = 5
-    learningRate = 0.01
+    epoch = 10
+    middle_layer_neurons = 8
+    learningRate = 0.005
 
     maxAccuracy = 0
     W1 = []
     b1 = []
     W2 = []
     b2 = []
-    W3 = []
-    b3 = []
 
     for i in range(20):
         # Shuffle data
@@ -119,7 +109,9 @@ if __name__ == "__main__":
 
         # Updating model inputs
         X = normalizeAllRows(training_data.T[[2, 3, 14, 15]])
-        X = np.vstack((X, oneHotEncode(allInputData.T[[1]][0], training_data.T[[1]][0]).T))
+        X = np.vstack(
+            (X, oneHotEncode(allInputData.T[[1]][0], training_data.T[[1]][0]).T)
+        )
         validation_X = normalizeAllRows(validation_data.T[[2, 3, 14, 15]])
         validation_X = np.vstack(
             (
@@ -134,7 +126,7 @@ if __name__ == "__main__":
         validation_Y = validation_labels.T
         Y = training_labels.T
 
-        #print(X.shape[0])
+        # print(Y.astype(float))
         nn = NeuralNetwork(X, Y, learningRate, X.shape[0], middle_layer_neurons)
         yaxisb = [[] for _ in range(np.ceil(X.shape[1] / batchSize).astype(int))]
         yaxis = [[] for _ in range(epoch)]
@@ -179,8 +171,6 @@ if __name__ == "__main__":
             b1 = nn.b1
             W2 = nn.W2
             b2 = nn.b2
-            W3 = nn.W3
-            b3 = nn.b3
 
     # writing predictions for the test data
     nn.setX(test_X)
@@ -189,8 +179,6 @@ if __name__ == "__main__":
     nn.b1 = b1
     nn.W2 = W2
     nn.b2 = b2
-    nn.W3 = W3
-    nn.b3 = b3
     print("Max accuracy:" + str(maxAccuracy))
     nn.feedforward()
     # print(nn.get_predictions())
